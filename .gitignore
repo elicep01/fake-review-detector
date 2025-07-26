@@ -205,4 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Ignore specific large file
 data/Reviews.csv
+
+# Ignore the whole folder
+project_splits/
