@@ -1,1 +1,50 @@
+import pandas as pd
+import numpy as np
+import joblib
+import os
+from lime.lime_text import LimeTextExplainer
+
+df_test = pd.read_csv('project_splits/sp_test_clean.csv')
+texts   = df_test['Text'].fillna('').tolist()
+y_true  = df_test['label'].values
+
+pipeline = joblib.load('models/sp_tfidf_logreg_pipeline.joblib')
+
+y_pred  = pipeline.predict(texts)
+y_proba = pipeline.predict_proba(texts)[:, 1]
+
+fn_idx = np.where((y_true == 1) & (y_pred == 0))[0]
+fp_idx = np.where((y_true == 0) & (y_pred == 1))[0]
+
+rng        = np.random.RandomState(42)
+fn_samples = rng.choice(fn_idx, size=10, replace=False)
+fp_samples = rng.choice(fp_idx, size=10, replace=False)
+
+os.makedirs('error_analysis', exist_ok=True)
+rows = []
+for label, idxs in [('FN', fn_samples), ('FP', fp_samples)]:
+    for idx in idxs:
+        rows.append({
+            'Type':       label,
+            'Text':       texts[idx],
+            'True_Label': y_true[idx],
+            'Pred_Label': y_pred[idx]
+        })
+pd.DataFrame(rows).to_csv('error_analysis/error_samples.csv', index=False)
+
+explainer = LimeTextExplainer(class_names=['genuine','fake'])
+for tag, samples in [('fn', fn_samples[:5]), ('fp', fp_samples[:5])]:
+    for i, idx in enumerate(samples, 1):
+        exp = explainer.explain_instance(
+            texts[idx],
+            pipeline.predict_proba,
+            num_features=10,
+            top_labels=1
+        )
+        fig = exp.as_pyplot_figure(label=exp.available_labels()[0])
+        fig.savefig(f'error_analysis/lime_{tag}_{i}.png', dpi=300)
+        fig.clf()
+
+print("Created error_analysis/error_samples.csv")
+print("Saved LIME plots to error_analysis/lime_<fn/fp>_*.png")
 
