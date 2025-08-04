@@ -1,47 +1,38 @@
 import os
-import pandas as pd
 import numpy as np
+import pandas as pd
 import joblib
 from lime.lime_text import LimeTextExplainer
 
-VAL_CSV = 'project_splits/sp_val_clean.csv'
-val_df = pd.read_csv(VAL_CSV)
-texts = val_df['cleaned'].fillna('').tolist()
-y_true = val_df['label'].values
+pipeline = joblib.load(f"models/{TASK}_tfidf_logreg.joblib")
 
-MODEL_PATH = 'models/sp_tfidf_logreg_pipeline.joblib'
-pipeline = joblib.load(MODEL_PATH)
+texts    = val["cleaned"].fillna("").tolist()
+y_true   = val["label"].values
+y_pred   = pipeline.predict(texts)
 
-y_pred = pipeline.predict(texts)
-y_proba = pipeline.predict_proba(texts)[:, 1]
+fn_idx   = np.where((y_true == 1) & (y_pred == 0))[0]
+fp_idx   = np.where((y_true == 0) & (y_pred == 1))[0]
 
-fn_idx = np.where((y_true == 1) & (y_pred == 0))[0]
-fp_idx = np.where((y_true == 0) & (y_pred == 1))[0]
+rng            = np.random.RandomState(42)
+fn_samples     = rng.choice(fn_idx, size=10, replace=False)
+fp_samples     = rng.choice(fp_idx, size=10, replace=False)
 
-rng = np.random.RandomState(42)
-fn_samples = rng.choice(fn_idx, size=10, replace=False)
-fp_samples = rng.choice(fp_idx, size=10, replace=False)
-
-OUT_DIR = 'error_analysis'
-os.makedirs(OUT_DIR, exist_ok=True)
-
+os.makedirs("error_analysis", exist_ok=True)
 records = []
-for label, idxs in [('FN', fn_samples), ('FP', fp_samples)]:
+for tag, idxs in [("FN", fn_samples), ("FP", fp_samples)]:
     for idx in idxs:
         records.append({
-            'Type':       label,
-            'Text':       texts[idx],
-            'True_Label': int(y_true[idx]),
-            'Pred_Label': int(y_pred[idx]),
-            'Note':       ''
+            "Type":       tag,
+            "Text":       texts[idx],
+            "True_Label": int(y_true[idx]),
+            "Pred_Label": int(y_pred[idx]),
+            "Note":       ""
         })
+pd.DataFrame(records).to_csv("error_analysis/val_error_samples.csv", index=False)
 
-pd.DataFrame(records).to_csv(f'{OUT_DIR}/val_error_samples.csv', index=False)
-print(f"Saved {OUT_DIR}/val_error_samples.csv")
-
-explainer = LimeTextExplainer(class_names=['neg', 'pos'])
-for tag, sample_idxs in [('fn', fn_samples[:5]), ('fp', fp_samples[:5])]:
-    for i, idx in enumerate(sample_idxs, start=1):
+explainer = LimeTextExplainer(class_names=["neg", "pos"])
+for tag, samples in [("fn", fn_samples[:5]), ("fp", fp_samples[:5])]:
+    for i, idx in enumerate(samples, start=1):
         exp = explainer.explain_instance(
             texts[idx],
             pipeline.predict_proba,
@@ -49,9 +40,8 @@ for tag, sample_idxs in [('fn', fn_samples[:5]), ('fp', fp_samples[:5])]:
             top_labels=1
         )
         fig = exp.as_pyplot_figure(label=exp.available_labels()[0])
-        fig.savefig(f'{OUT_DIR}/lime_{tag}_{i}.png', dpi=300)
+        fig.savefig(f"error_analysis/lime_{tag}_{i}.png", dpi=300)
         fig.clf()
 
-print(f"LIME plots saved in {OUT_DIR}/lime_<fn/fp>_*.png")
 
 
