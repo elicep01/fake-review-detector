@@ -1,6 +1,6 @@
 # Fake vs Genuine Product Review Detector
 
-> UW–Madison ECE — Final Project  
+> UW–Madison ECE 539 — Final Project  
 > **Team:** Brooks Harris (Undergraduate), Elice Priyadarshini (Graduate), Kaitlyn Yoo (Undergraduate)
 
 ## Overview
