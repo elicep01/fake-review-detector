@@ -22,7 +22,7 @@ Deceptive product reviews harm buyers and honest sellers. This project builds a 
 
 ## Notebooks
 
-> Run notebooks in order (01 → 06). We are removing `07_streamlit_demo.ipynb`, so it is intentionally **not** documented here.
+> Run notebooks in order (01 → 06). 
 
 1. **`01_data_audit.ipynb` — Dataset audit and EDA**  
    - Loads the Amazon Fine Food Reviews dataset.  
@@ -79,12 +79,6 @@ Deceptive product reviews harm buyers and honest sellers. This project builds a 
 
 ```
 .
-├── artifacts/                # saved models, vectorizers
-├── configs/                  # optional YAMLs for runs
-├── data/
-│   ├── raw/                  # original CSV(s)
-│   └── processed/            # cleaned/split data
-├── figures/                  # plots used in the report
 ├── 01_data_audit.ipynb
 ├── 02_preprocessing.ipynb
 ├── 03_baseline_tfidf_logreg.ipynb
